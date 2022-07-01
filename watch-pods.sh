@@ -1,1 +1,1 @@
-watch kubectl get pods -l app.kubernetes.io/name=hybrid-cloud-backend
+watch kubectl get pods -l app.kubernetes.io/name=backapi
