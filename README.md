@@ -131,13 +131,13 @@ kubectl apply -f frontend.yml
 ```
 
 ```
-kubectl set env deployment/hybrid-cloud-backend WORKER_CLOUD_ID="frankfurt"
+kubectl set env deployment/backapi WORKER_CLOUD_ID="frankfurt"
 ```
 
 ```
 kubectl get services
 NAME                    TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)                           AGE
-hybrid-cloud-backend    ClusterIP      10.12.8.150    <none>           8080/TCP                          2m9s
+backapi                 ClusterIP      10.12.8.150    <none>           8080/TCP                          2m9s
 hybrid-cloud-frontend   LoadBalancer   10.12.15.201   <pending>        8080:30090/TCP                    21s
 skupper                 LoadBalancer   10.12.1.136    34.141.109.254   8080:30374/TCP,8081:31533/TCP     3h44m
 skupper-router          LoadBalancer   10.12.9.65     34.89.234.29     55671:32739/TCP,45671:30461/TCP   3h45m
@@ -145,7 +145,7 @@ skupper-router-local    ClusterIP      10.12.14.192   <none>           5671/TCP 
 ```
 
 ```
-skupper expose deployment/hybrid-cloud-backend --port 8080
+skupper expose deployment/backapi --port 8080
 ```
 
 ```
@@ -166,7 +166,7 @@ kubectl apply -f backend.yml
 ```
 kubectl get services
 NAME                   TYPE           CLUSTER-IP    EXTERNAL-IP     PORT(S)                           AGE
-hybrid-cloud-backend   ClusterIP      10.24.6.133   <none>          8080/TCP                          40s
+backapi                ClusterIP      10.24.6.133   <none>          8080/TCP                          40s
 skupper                LoadBalancer   10.24.5.23    34.87.234.63    8080:31305/TCP,8081:32629/TCP     21m
 skupper-router         LoadBalancer   10.24.9.48    34.116.77.199   55671:31991/TCP,45671:32749/TCP   22m
 skupper-router-local   ClusterIP      10.24.4.201   <none>          5671/TCP                          22m
@@ -177,19 +177,19 @@ Check on pods to verify no crashlooping
 ```
 kubectl get pods
 NAME                                          READY   STATUS    RESTARTS   AGE
-hybrid-cloud-backend-6cc79dbb7c-qpvfh         1/1     Running   0          1m45s
+backapi-6cc79dbb7c-qpvfh                      1/1     Running   0          1m45s
 skupper-router-5fddbd5698-zxrjj               2/2     Running   0          24m
 skupper-service-controller-69495555cd-mswhn   1/1     Running   0          24m
 ```
 
 ```
-kubectl set env deployment/hybrid-cloud-backend WORKER_CLOUD_ID="sydney"
+kubectl set env deployment/backapi WORKER_CLOUD_ID="sydney"
 ```
 
 Expose this service
 
 ```
-skupper expose deployment/hybrid-cloud-backend --port 8080
+skupper expose deployment/backapi --port 8080
 ```
 
 ```
@@ -202,22 +202,22 @@ Sites:
 │  sites linked to: 2ead203-frankfurt
 │  version: 1.0.0
 │  ╰─ Services:
-│     ╰─ name: hybrid-cloud-backend
-│        address: hybrid-cloud-backend: 8080
+│     ╰─ name: backapi
+│        address: backapi: 8080
 │        protocol: tcp
 │        ╰─ Targets:
-│           ╰─ name: hybrid-cloud-backend-8cfd5874-5fww2
+│           ╰─ name: backapi-8cfd5874-5fww2
 ╰─ [remote] 2ead203 - frankfurt
    URL: 34.89.234.29
    name: frankfurt
    namespace: frankfurt
    version: 1.0.0
    ╰─ Services:
-      ╰─ name: hybrid-cloud-backend
-         address: hybrid-cloud-backend: 8080
+      ╰─ name: backapi
+         address: backapi: 8080
          protocol: tcp
          ╰─ Targets:
-            ╰─ name: hybrid-cloud-backend-557dfbd54c-99s86
+            ╰─ name: backapi-557dfbd54c-99s86
 ```
 
 
@@ -237,7 +237,7 @@ done
 ```
 
 ```
-kubectl scale --replicas=0 deployment/hybrid-cloud-backend
+kubectl scale --replicas=0 deployment/backapi
 ```
 
 ![Fail-over to Sydney](images/frontend-sydney.png)
@@ -277,17 +277,17 @@ kubectl apply -f backend.yml
 ```
 
 ```
-kubectl set env deployment/hybrid-cloud-backend WORKER_CLOUD_ID="montreal"
+kubectl set env deployment/backapi WORKER_CLOUD_ID="montreal"
 ```
 
 ```
-skupper expose deployment/hybrid-cloud-backend --port 8080
+skupper expose deployment/backapi --port 8080
 ```
 
 ### Sydney backend zero
 
 ```
-kubectl scale --replicas=0 deployment/hybrid-cloud-backend
+kubectl scale --replicas=0 deployment/backapi
 ```
 
 ![frontend montreal](images/frontend-montreal.png)
@@ -298,12 +298,12 @@ kubectl scale --replicas=0 deployment/hybrid-cloud-backend
 Sydney
 
 ```
-kubectl scale --replicas=1 deployment/hybrid-cloud-backend
+kubectl scale --replicas=1 deployment/backapi
 ```
 
 Frankfurt
 ```
-kubectl scale --replicas=1 deployment/hybrid-cloud-backend
+kubectl scale --replicas=1 deployment/backapi
 ```
 
 To clean up the UI/Frontend just bounce the pod
@@ -332,34 +332,34 @@ Sites:
 │  sites linked to: 2ead203-frankfurt
 │  version: 1.0.0
 │  ╰─ Services:
-│     ╰─ name: hybrid-cloud-backend
-│        address: hybrid-cloud-backend: 8080
+│     ╰─ name: backapi
+│        address: backapi: 8080
 │        protocol: tcp
 │        ╰─ Targets:
-│           ╰─ name: hybrid-cloud-backend-8cfd5874-h92bh
-├─ [local] 218e851 - iowa
+│           ╰─ name: backapi-8cfd5874-h92bh
+├─ [local] 218e851 - montreal
 │  URL: 34.136.167.87
-│  name: iowa
-│  namespace: iowa
+│  name: montreal
+│  namespace: montreal
 │  sites linked to: 2ead203-frankfurt
 │  version: 1.0.0
 │  ╰─ Services:
-│     ╰─ name: hybrid-cloud-backend
-│        address: hybrid-cloud-backend: 8080
+│     ╰─ name: backapi
+│        address: backapi: 8080
 │        protocol: tcp
 │        ╰─ Targets:
-│           ╰─ name: hybrid-cloud-backend-6d78c979c8-nnndz
+│           ╰─ name: backapi-6d78c979c8-nnndz
 ╰─ [remote] 2ead203 - frankfurt
    URL: 34.89.234.29
    name: frankfurt
    namespace: frankfurt
    version: 1.0.0
    ╰─ Services:
-      ╰─ name: hybrid-cloud-backend
-         address: hybrid-cloud-backend: 8080
+      ╰─ name: backapi
+         address: backapi: 8080
          protocol: tcp
          ╰─ Targets:
-            ╰─ name: hybrid-cloud-backend-557dfbd54c-k6szv
+            ╰─ name: backapi-557dfbd54c-k6szv
 ```
 
 
@@ -368,5 +368,5 @@ Sites:
 ```
 gcloud container clusters delete frankfurt --zone europe-west3
 gcloud container clusters delete sydney --zone australia-southeast1
-gcloud container clusters delete iowa --zone us-central1
+gcloud container clusters delete montreal --zone us-central1
 ```

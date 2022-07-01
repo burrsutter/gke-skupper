@@ -1,1 +1,1 @@
-kubectl scale --replicas=2 deployment/hybrid-cloud-backend
+kubectl scale --replicas=2 deployment/backapi
