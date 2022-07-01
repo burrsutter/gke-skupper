@@ -27,8 +27,7 @@ spec:
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: "hybrid-cloud-frontend"
-        app.kubernetes.io/version: "1.0.0"
+        app.kubernetes.io/name: "hybrid-cloud-frontend"        
     spec:
       containers:
       - env:
