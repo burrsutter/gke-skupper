@@ -1,0 +1,1 @@
+kubectl scale --replicas=1 deployment/hybrid-cloud-backend
