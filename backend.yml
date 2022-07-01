@@ -52,11 +52,11 @@ spec:
         livenessProbe:
           httpGet:
               port: 8080
-              path: /alive
+              path: /api/alive
           periodSeconds: 5
           timeoutSeconds: 2
         readinessProbe:
           httpGet:  
-            path: /health
+            path: /api/ready
             port: 8080
           periodSeconds: 3

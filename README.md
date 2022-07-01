@@ -8,6 +8,8 @@ Sydney australia-southeast1 - backend-only
 
 Iowa us-central1 - backend-only
 
+Montréal northamerica-northeast1 - backend-only
+
 
 ```
 export KUBE_EDITOR="code -w"
@@ -170,6 +172,16 @@ skupper-router         LoadBalancer   10.24.9.48    34.116.77.199   55671:31991/
 skupper-router-local   ClusterIP      10.24.4.201   <none>          5671/TCP                          22m
 ```
 
+Check on pods to verify no crashlooping
+
+```
+kubectl get pods
+NAME                                          READY   STATUS    RESTARTS   AGE
+hybrid-cloud-backend-6cc79dbb7c-qpvfh         1/1     Running   0          1m45s
+skupper-router-5fddbd5698-zxrjj               2/2     Running   0          24m
+skupper-service-controller-69495555cd-mswhn   1/1     Running   0          24m
+```
+
 ```
 kubectl set env deployment/hybrid-cloud-backend WORKER_CLOUD_ID="sydney"
 ```
@@ -211,6 +223,19 @@ Sites:
 
 ### Frankfurt backend zero
 
+Start up poller
+
+```
+FRONTENDIP=$(kubectl get service hybrid-cloud-frontend -o jsonpath="{.status.loadBalancer.ingress[0].ip}"):8080
+
+while true
+do curl $FRONTENDIP/api/cloud
+echo ""
+sleep .3
+done
+
+```
+
 ```
 kubectl scale --replicas=0 deployment/hybrid-cloud-backend
 ```
@@ -220,18 +245,18 @@ kubectl scale --replicas=0 deployment/hybrid-cloud-backend
 
 ## Add 3rd cluster
 
-### Iowa 
+### Montreal 
 ```
-export KUBECONFIG=/Users/burr/xKS/.kubeconfig/iowa-config
+export KUBECONFIG=/Users/burr/xKS/.kubeconfig/montreal-config
 
-gcloud container clusters create iowa --zone us-central1 --num-nodes 1
+gcloud container clusters create montreal --zone northamerica-northeast1 --num-nodes 1
 
-gcloud container clusters get-credentials iowa --zone us-central1
+gcloud container clusters get-credentials montreal --zone northamerica-northeast1
 ```
 
 ```
-kubectl create namespace iowa
-kubectl config set-context --current --namespace=iowa
+kubectl create namespace montreal
+kubectl config set-context --current --namespace=montreal
 ```
 
 ```
@@ -244,7 +269,7 @@ skupper link create token.yaml
 
 ```
 skupper status
-Skupper is enabled for namespace "iowa" in interior mode. It is connected to 2 other sites (1 indirectly). It has 1 exposed service.
+Skupper is enabled for namespace "montreal" in interior mode. It is connected to 2 other sites (1 indirectly). It has 1 exposed service.
 ```
 
 ```
@@ -252,7 +277,7 @@ kubectl apply -f backend.yml
 ```
 
 ```
-kubectl set env deployment/hybrid-cloud-backend WORKER_CLOUD_ID="iowa"
+kubectl set env deployment/hybrid-cloud-backend WORKER_CLOUD_ID="montreal"
 ```
 
 ```
@@ -265,7 +290,7 @@ skupper expose deployment/hybrid-cloud-backend --port 8080
 kubectl scale --replicas=0 deployment/hybrid-cloud-backend
 ```
 
-![frontend iowa](images/frontend-iowa.png)
+![frontend montreal](images/frontend-montreal.png)
 
 
 ### And have some fun with it
