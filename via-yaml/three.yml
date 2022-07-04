@@ -1,0 +1,15 @@
+apiVersion: v1
+data:
+  cluster-local: "false"
+  console: "true"
+  console-authentication: internal
+  console-password: "mypassword"
+  console-user: "admin"
+  edge: "true"
+  name: three
+  router-console: "true"
+  service-controller: "true"
+  service-sync: "true"
+kind: ConfigMap
+metadata:
+  name: skupper-site

@@ -1,4 +1,4 @@
-# GKE + Skupper
+# GKE + Skupper CLI
 
 I am using the following Google Regions and I am not sure if this requires quota adjustment to allow for the lauching of 3 node GKE clusters
 
@@ -6,15 +6,19 @@ Frankfurt europe-west3 - has the frontend+backend
 
 Sydney australia-southeast1 - backend-only
 
-Iowa us-central1 - backend-only
-
 Montréal northamerica-northeast1 - backend-only
+
 
 
 ```
 export KUBE_EDITOR="code -w"
 export PATH=~/devnation/bin:$PATH
 ```
+
+## Download Skupper CLI
+
+https://skupper.io/install/index.html
+
 
 ```
 skupper version
@@ -366,7 +370,161 @@ Sites:
 ### Clean Up
 
 ```
-gcloud container clusters delete frankfurt --zone europe-west3
 gcloud container clusters delete sydney --zone australia-southeast1
-gcloud container clusters delete montreal --zone us-central1
+gcloud container clusters delete frankfurt --zone europe-west3
+gcloud container clusters delete montreal --zone northamerica-northeast1
+```
+
+
+# YAML Way
+
+Using a single cluster and 3 namespaces of `one`, `two` and `three` to cut down on hosting costs while experimenting
+
+### Set some env vars
+
+```
+export KUBE_EDITOR="code -w"
+export PATH=~/devnation/bin:/System/Volumes/Data/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/:$PATH
+export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+```
+
+### Create a GKE Cluster
+
+```
+export KUBECONFIG=/Users/burr/xKS/.kubeconfig/montreal-config
+
+gcloud container clusters create montreal --zone northamerica-northeast1 --num-nodes 1
+
+gcloud container clusters get-credentials montreal --zone northamerica-northeast1
+```
+
+![iterm2 setup](images/iterm2-yaml-1.png)
+
+## One
+
+### One: Create Namespace 
+
+```
+kubectl create namespace one
+kubectl config set-context --current --namespace=one
+```
+
+### One: Install Skupper into namespace
+
+```
+kubectl apply -f https://raw.githubusercontent.com/skupperproject/skupper/0.8.6/cmd/site-controller/deploy-watch-current-ns.yaml
+```
+
+#### Verify
+
+```
+kubectl get pods
+NAME                                       READY   STATUS    RESTARTS   AGE
+skupper-site-controller-689565b686-5tfdd   1/1     Running   0          54s
+```
+
+```
+kubectl get secrets
+NAME                                  TYPE                                  DATA   AGE
+default-token-p9g72                   kubernetes.io/service-account-token   3      110s
+skupper-site-controller-token-dndvc   kubernetes.io/service-account-token   3      86s
+```
+
+### One: Create Site 
+
+```
+kubectl apply -f via-yaml/one.yml
+```
+
+#### Verify
+
+```
+kubectl get pods
+NAME                                       READY   STATUS    RESTARTS   AGE
+skupper-router-844b6d45d9-bhdm7            2/2     Running   0          25s
+skupper-site-controller-689565b686-5tfdd   1/1     Running   0          8m29s
+```
+
+```
+kubectl get cm
+NAME                  DATA   AGE
+kube-root-ca.crt      1      8m49s
+skupper-internal      1      19s
+skupper-sasl-config   1      21s
+skupper-services      0      20s
+skupper-site          10     21s
+```
+
+```
+kubectl get secrets
+NAME                                     TYPE                                  DATA   AGE
+default-token-p9g72                      kubernetes.io/service-account-token   3      8m52s
+skupper-console-users                    Opaque                                1      23s
+skupper-local-ca                         kubernetes.io/tls                     2      24s
+skupper-local-client                     kubernetes.io/tls                     4      23s
+skupper-local-server                     kubernetes.io/tls                     3      23s
+skupper-router-token-hg9pk               kubernetes.io/service-account-token   3      24s
+skupper-service-controller-token-jd6z5   kubernetes.io/service-account-token   3      22s
+skupper-site-controller-token-dndvc      kubernetes.io/service-account-token   3      8m28s
+```
+
+```
+kubectl get services
+NAME                     TYPE           CLUSTER-IP    EXTERNAL-IP     PORT(S)          AGE
+skupper                  LoadBalancer   10.112.6.23   35.203.20.189   8080:30330/TCP   75s
+skupper-router-console   ClusterIP      10.112.6.44   <none>          8080/TCP         76s
+skupper-router-local     ClusterIP      10.112.9.30   <none>          5671/TCP         76s
+```
+
+## Two
+
+### Two: Create Namespace 
+
+```
+kubectl create namespace two
+kubectl config set-context --current --namespace=two
+```
+
+A secret by default
+
+```
+kubectl get secrets
+NAME                  TYPE                                  DATA   AGE
+default-token-6p4v7   kubernetes.io/service-account-token   3      30s
+```
+
+A configmap by default
+
+```
+kubectl get cm
+NAME               DATA   AGE
+kube-root-ca.crt   1      22s
+```
+
+### Two: Install Skupper into namespace
+
+```
+kubectl apply -f https://raw.githubusercontent.com/skupperproject/skupper/0.8.6/cmd/site-controller/deploy-watch-current-ns.yaml
+```
+
+
+### Two: Create Site 
+
+```
+kubectl apply -f via-yaml/two.yml
+```
+
+### Link One to Two
+
+Create the token request secret
+
+```
+kubectl -n one apply -f via-yaml/request-token.yml
+```
+
+
+### Clean Up
+
+```
+gcloud container clusters delete montreal --zone northamerica-northeast1
 ```

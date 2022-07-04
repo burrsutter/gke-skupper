@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+ name: link-to-one
+ namespace: one
+ labels:
+   skupper.io/type: connection-token-request
