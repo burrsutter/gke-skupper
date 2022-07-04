@@ -5,7 +5,7 @@ data:
   console-authentication: internal
   console-password: "mypassword"
   console-user: "admin"
-  edge: "true"
+  edge: "false"
   name: one
   router-console: "true"
   service-controller: "true"

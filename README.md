@@ -409,10 +409,27 @@ kubectl create namespace one
 kubectl config set-context --current --namespace=one
 ```
 
+A secret by default
+
+```
+kubectl get secrets
+NAME                  TYPE                                  DATA   AGE
+default-token-6p4v7   kubernetes.io/service-account-token   3      30s
+```
+
+A configmap by default
+
+```
+kubectl get cm
+NAME               DATA   AGE
+kube-root-ca.crt   1      22s
+```
+
+
 ### One: Install Skupper into namespace
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/skupperproject/skupper/0.8.6/cmd/site-controller/deploy-watch-current-ns.yaml
+kubectl apply -f https://raw.githubusercontent.com/skupperproject/skupper/1.0.0/cmd/site-controller/deploy-watch-current-ns.yaml
 ```
 
 #### Verify
@@ -426,8 +443,13 @@ skupper-site-controller-689565b686-5tfdd   1/1     Running   0          54s
 ```
 kubectl get secrets
 NAME                                  TYPE                                  DATA   AGE
-default-token-p9g72                   kubernetes.io/service-account-token   3      110s
+default-token-6p4v7                   kubernetes.io/service-account-token   3      110s
 skupper-site-controller-token-dndvc   kubernetes.io/service-account-token   3      86s
+```
+
+```
+kubectl get services
+No resources found in one namespace.
 ```
 
 ### One: Create Site 
@@ -458,22 +480,29 @@ skupper-site          10     21s
 ```
 kubectl get secrets
 NAME                                     TYPE                                  DATA   AGE
-default-token-p9g72                      kubernetes.io/service-account-token   3      8m52s
-skupper-console-users                    Opaque                                1      23s
-skupper-local-ca                         kubernetes.io/tls                     2      24s
-skupper-local-client                     kubernetes.io/tls                     4      23s
-skupper-local-server                     kubernetes.io/tls                     3      23s
-skupper-router-token-hg9pk               kubernetes.io/service-account-token   3      24s
-skupper-service-controller-token-jd6z5   kubernetes.io/service-account-token   3      22s
-skupper-site-controller-token-dndvc      kubernetes.io/service-account-token   3      8m28s
+default-token-6p4v7                      kubernetes.io/service-account-token   3      4m31s
+skupper-claims-server                    kubernetes.io/tls                     3      11s
+skupper-console-certs                    kubernetes.io/tls                     3      11s
+skupper-console-users                    Opaque                                1      104s
+skupper-local-ca                         kubernetes.io/tls                     2      105s
+skupper-local-client                     kubernetes.io/tls                     4      104s
+skupper-local-server                     kubernetes.io/tls                     3      105s
+skupper-router-token-8tl8s               kubernetes.io/service-account-token   3      105s
+skupper-service-ca                       kubernetes.io/tls                     2      105s
+skupper-service-client                   kubernetes.io/tls                     3      104s
+skupper-service-controller-token-cntl8   kubernetes.io/service-account-token   3      53s
+skupper-site-ca                          kubernetes.io/tls                     2      105s
+skupper-site-controller-token-qqlkk      kubernetes.io/service-account-token   3      4m22s
+skupper-site-server                      kubernetes.io/tls                     3      53s
 ```
 
 ```
 kubectl get services
-NAME                     TYPE           CLUSTER-IP    EXTERNAL-IP     PORT(S)          AGE
-skupper                  LoadBalancer   10.112.6.23   35.203.20.189   8080:30330/TCP   75s
-skupper-router-console   ClusterIP      10.112.6.44   <none>          8080/TCP         76s
-skupper-router-local     ClusterIP      10.112.9.30   <none>          5671/TCP         76s
+NAME                     TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)                           AGE
+skupper                  LoadBalancer   10.112.11.8     34.95.24.191   8080:31303/TCP,8081:31503/TCP     103s
+skupper-router           LoadBalancer   10.112.1.37     34.95.51.203   55671:30188/TCP,45671:32064/TCP   2m33s
+skupper-router-console   ClusterIP      10.112.6.101    <none>         8080/TCP                          2m34s
+skupper-router-local     ClusterIP      10.112.11.133   <none>         5671/TCP                          2m34s
 ```
 
 ## Two
@@ -485,26 +514,11 @@ kubectl create namespace two
 kubectl config set-context --current --namespace=two
 ```
 
-A secret by default
-
-```
-kubectl get secrets
-NAME                  TYPE                                  DATA   AGE
-default-token-6p4v7   kubernetes.io/service-account-token   3      30s
-```
-
-A configmap by default
-
-```
-kubectl get cm
-NAME               DATA   AGE
-kube-root-ca.crt   1      22s
-```
 
 ### Two: Install Skupper into namespace
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/skupperproject/skupper/0.8.6/cmd/site-controller/deploy-watch-current-ns.yaml
+kubectl apply -f https://raw.githubusercontent.com/skupperproject/skupper/1.0.0/cmd/site-controller/deploy-watch-current-ns.yaml
 ```
 
 
@@ -514,7 +528,14 @@ kubectl apply -f https://raw.githubusercontent.com/skupperproject/skupper/0.8.6/
 kubectl apply -f via-yaml/two.yml
 ```
 
-### Link One to Two
+```
+skupper status
+Skupper is enabled for namespace "two" in interior mode. It is not connected to any other sites. It has no exposed services.
+The site console url is:  https://34.95.54.210:8080
+The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
+```
+
+### Generate Token in One
 
 Create the token request secret in One
 
@@ -523,8 +544,54 @@ kubectl config set-context --current --namespace=one
 ```
 
 ```
+skupper status
+Skupper is enabled for namespace "one" in interior mode. It is not connected to any other sites. It has no exposed services.
+The site console url is:  https://34.95.24.191:8080
+The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
+```
+
+```
 kubectl -n one apply -f via-yaml/request-token.yml
 ```
+
+```
+kubectl get secrets -l skupper.io/type=connection-token
+NAME          TYPE     DATA   AGE
+link-to-one   Opaque   3      38s
+```
+
+```
+kubectl describe secret link-to-one
+Name:         link-to-one
+Namespace:    one
+Labels:       skupper.io/type=connection-token
+Annotations:  edge-host: 34.95.51.203
+              edge-port: 45671
+              inter-router-host: 34.95.51.203
+              inter-router-port: 55671
+              skupper.io/generated-by: 2aa764f1-5394-4ccb-a4fd-8965d341c608
+              skupper.io/site-version: 1.0.0
+
+Type:  Opaque
+
+Data
+====
+ca.crt:   1119 bytes
+tls.crt:  1135 bytes
+tls.key:  1679 bytes
+```
+
+```
+skupper network status
+Sites:
+╰─ [local] 2aa764f - one
+   URL: 34.95.51.203
+   name: one
+   namespace: one
+   version: 1.0.0
+```
+
+### Copy One's Secret/Token to Two
 
 
 ### Clean Up
