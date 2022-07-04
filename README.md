@@ -516,7 +516,11 @@ kubectl apply -f via-yaml/two.yml
 
 ### Link One to Two
 
-Create the token request secret
+Create the token request secret in One
+
+```
+kubectl config set-context --current --namespace=one
+```
 
 ```
 kubectl -n one apply -f via-yaml/request-token.yml
