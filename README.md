@@ -705,12 +705,19 @@ kubectl config set-context --current --namespace=two
 
 ```
 kubectl apply -f backend.yml
+kubectl set env deployment/backapi WORKER_CLOUD_ID="two"
 ```
 
 How to expose via yaml?
 
 ```
-TBD
+kubectl annotate service backapi skupper.io/proxy=tcp
+```
+
+```
+Skupper is enabled for namespace "two" in interior mode. It is connected to 1 other site. It has 1 exposed service.
+The site console url is:  https://34.95.54.210:8080
+The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
 ```
 
 After exposing Two's backapi to One then turn off One
@@ -725,6 +732,88 @@ kubectl -n one scale --replicas=0 deployment/backapi
 curl $FRONTENDIP/api/cloud
 two:0
 ```
+
+### Three
+
+```
+kubectl create namespace three
+kubectl config set-context --current --namespace=three
+```
+
+```
+kubectl apply -f https://raw.githubusercontent.com/skupperproject/skupper/1.0.0/cmd/site-controller/deploy-watch-current-ns.yaml
+```
+
+```
+kubectl apply -f via-yaml/three.yml
+```
+
+```
+kubectl apply -f backend.yml
+```
+
+```
+kubectl set env deployment/backapi WORKER_CLOUD_ID="three"
+```
+
+```
+kubectl apply -f link-to-one-no-uid.yaml
+```
+
+```
+kubectl annotate service backapi skupper.io/proxy=tcp
+```
+
+```
+skupper service status
+Services exposed through Skupper:
+╰─ backapi (tcp port 8080)
+```
+
+```
+skupper network status
+Sites:
+├─ [local] 575bb4a - three
+│  URL: 34.152.48.197
+│  name: three
+│  namespace: three
+│  sites linked to: 2aa764f-one
+│  version: 1.0.0
+│  ╰─ Services:
+│     ╰─ name: backapi
+│        address: backapi: 8080
+│        protocol: tcp
+├─ [remote] 2aa764f - one
+│  URL: 34.95.51.203
+│  name: one
+│  namespace: one
+│  version: 1.0.0
+│  ╰─ Services:
+│     ╰─ name: backapi
+│        address: backapi: 8080
+│        protocol: tcp
+╰─ [remote] 2b352a8 - two
+   URL: 34.152.9.114
+   name: two
+   namespace: two
+   sites linked to: 2aa764f-one
+   version: 1.0.0
+   ╰─ Services:
+      ╰─ name: backapi
+         address: backapi: 8080
+         protocol: tcp
+```
+
+```
+kubectl -n one scale --replicas=0 deployment/backapi
+kubectl -n two scale --replicas=0 deployment/backapi
+```
+
+```
+curl $FRONTENDIP/api/cloud
+```
+
+
 
 ### Clean Up
 
