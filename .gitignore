@@ -1,3 +1,8 @@
 .kubeconfig
 token.yaml
+link-to-one.yaml
+link-to-one-no-namespace.yaml
+link-to-one-no-resourceVersion.yaml
+link-to-one-no-uid.yaml
+link-to-one-no-last-configuration.yaml
 .DS_Store

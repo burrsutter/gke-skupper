@@ -378,7 +378,11 @@ gcloud container clusters delete montreal --zone northamerica-northeast1
 
 # YAML Way
 
-Using a single cluster and 3 namespaces of `one`, `two` and `three` to cut down on hosting costs while experimenting
+Using a single cluster and 3 namespaces of `one`, `two` and `three` to cut down on hosting costs while experimenting.
+
+**one** holds frontend and backend
+
+**two** and **three** backend only
 
 ### Set some env vars
 
@@ -593,6 +597,134 @@ Sites:
 
 ### Copy One's Secret/Token to Two
 
+#### From One
+
+```
+kubectl config set-context --current --namespace=one
+kubectl get secret link-to-one -o yaml > link-to-one.yaml
+```
+
+#### Modify the secret to strip out Namespace & cruft
+
+```
+brew install yq
+```
+
+```
+cat link-to-one.yaml| yq 'del(.metadata.namespace)' > link-to-one-no-namespace.yaml
+cat link-to-one-no-namespace.yaml| yq 'del(.metadata.resourceVersion)' > link-to-one-no-resourceVersion.yaml
+cat link-to-one-no-resourceVersion.yaml| yq 'del(.metadata.uid)' > link-to-one-no-uid.yaml
+```
+
+#### To Two
+
+```
+kubectl config set-context --current --namespace=two
+kubectl apply -f link-to-one-no-uid.yaml
+```
+
+
+```
+skupper status
+Skupper is enabled for namespace "two" in interior mode. It is connected to 1 other site. It has no exposed services.
+The site console url is:  https://34.95.54.210:8080
+The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
+```
+
+```
+skupper network status
+Sites:
+├─ [local] 2b352a8 - two
+│  URL: 34.152.9.114
+│  name: two
+│  namespace: two
+│  sites linked to: 2aa764f-one
+│  version: 1.0.0
+╰─ [remote] 2aa764f - one
+   URL: 34.95.51.203
+   name: one
+   namespace: one
+   version: 1.0.0
+```
+
+### One: Frontend and Backend
+
+```
+kubectl config set-context --current --namespace=one
+```
+
+```
+kubectl apply -f backend.yml
+kubectl apply -f frontend.yml
+```
+
+```
+kubectl set env deployment/backapi WORKER_CLOUD_ID="one"
+```
+
+```
+kubectl get pods
+NAME                                         READY   STATUS    RESTARTS   AGE
+backapi-f6d67f599-94wjx                      1/1     Running   0          16s
+hybrid-cloud-frontend-6d88f9cd4b-5q829       1/1     Running   0          30s
+skupper-router-784995cc5-jh7wr               2/2     Running   0          58m
+skupper-service-controller-9695fdfc6-dq4sx   1/1     Running   0          56m
+skupper-site-controller-56d886649c-44r58     1/1     Running   0          61m
+```
+
+```
+kubectl get services
+NAME                     TYPE           CLUSTER-IP      EXTERNAL-IP     PORT(S)                           AGE
+backapi                  ClusterIP      10.112.8.50     <none>          8080/TCP                          56s
+hybrid-cloud-frontend    LoadBalancer   10.112.2.32     35.234.253.91   8080:31755/TCP                    51s
+skupper                  LoadBalancer   10.112.11.8     34.95.24.191    8080:31303/TCP,8081:31503/TCP     57m
+skupper-router           LoadBalancer   10.112.1.37     34.95.51.203    55671:30188/TCP,45671:32064/TCP   58m
+skupper-router-console   ClusterIP      10.112.6.101    <none>          8080/TCP                          58m
+skupper-router-local     ClusterIP      10.112.11.133   <none>          5671/TCP                          58m
+```
+
+
+```
+FRONTENDIP=$(kubectl get service hybrid-cloud-frontend -o jsonpath="{.status.loadBalancer.ingress[0].ip}"):8080
+
+open http://$FRONTENDIP
+```
+
+![frontend yaml one](images/yaml-way-frontend-one.png)
+
+```
+curl $FRONTENDIP/api/cloud
+one:0
+```
+
+### Two: Backend
+
+```
+kubectl config set-context --current --namespace=two
+```
+
+```
+kubectl apply -f backend.yml
+```
+
+How to expose via yaml?
+
+```
+TBD
+```
+
+After exposing Two's backapi to One then turn off One
+
+### Fail-over from One to Two
+
+```
+kubectl -n one scale --replicas=0 deployment/backapi
+```
+
+```
+curl $FRONTENDIP/api/cloud
+two:0
+```
 
 ### Clean Up
 
