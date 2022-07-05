@@ -3,5 +3,7 @@ kind: Secret
 metadata:
  name: link-to-one
  namespace: one
+ annotations: 
+   skupper.io/cost: "0"
  labels:
    skupper.io/type: connection-token-request

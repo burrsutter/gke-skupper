@@ -1,0 +1,1 @@
+ watch kubectl get pods -l app.kubernetes.io/name=backapi -A

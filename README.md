@@ -697,6 +697,10 @@ curl $FRONTENDIP/api/cloud
 one:0
 ```
 
+```
+kubectl annotate service backapi skupper.io/proxy=tcp
+```
+
 ### Two: Backend
 
 ```
@@ -812,6 +816,67 @@ kubectl -n two scale --replicas=0 deployment/backapi
 ```
 curl $FRONTENDIP/api/cloud
 ```
+
+### Costs
+
+```
+kubectl -n one annotate service backapi skupper.io/cost="5"
+```
+
+```
+kubectl -n two annotate service backapi skupper.io/cost="10"
+```
+
+```
+kubectl -n three annotate service backapi skupper.io/cost="15"
+```
+
+OR
+
+```
+kubectl -n three annotate service backapi skupper.io/cost="1" --overwrite
+kubectl -n one annotate service backapi skupper.io/cost="2" --overwrite
+kubectl -n two annotate service backapi skupper.io/cost="3" --overwrite
+```
+
+See the current costs
+
+```
+kubectl exec deploy/skupper-router -c router -- skmanage query --type node | jq -r '.[] | "Name: \(.name) - Cost: \(if .cost |.==null then 0 else .cost end)"'
+```
+
+```
+echo "one"
+kubectl -n one get service backapi -o jsonpath='{.metadata.annotations.skupper\.io/cost}'
+echo ""
+echo "two"
+kubectl -n two get service backapi -o jsonpath='{.metadata.annotations.skupper\.io/cost}'
+echo ""
+echo "three"
+kubectl -n three get service backapi -o jsonpath='{.metadata.annotations.skupper\.io/cost}'
+```
+
+### Console
+
+Display the password
+
+```
+skupper status
+Skupper is enabled for namespace "one" in interior mode. It is connected to 2 other sites. It has 1 exposed service.
+The site console url is:  https://34.95.24.191:8080
+The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
+```
+
+```
+kubectl get secret skupper-console-users -o jsonpath='{.data.admin}' | base64 -d
+```
+
+```
+open https://34.95.24.191:8080
+```
+
+and `admin` + `mypassword`
+
 
 
 
