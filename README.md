@@ -433,7 +433,7 @@ kube-root-ca.crt   1      22s
 ### One: Install Skupper into namespace
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/skupperproject/skupper/1.0.0/cmd/site-controller/deploy-watch-current-ns.yaml
+kubectl -n one apply -f https://raw.githubusercontent.com/skupperproject/skupper/1.0.0/cmd/site-controller/deploy-watch-current-ns.yaml
 ```
 
 #### Verify
@@ -522,7 +522,7 @@ kubectl config set-context --current --namespace=two
 ### Two: Install Skupper into namespace
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/skupperproject/skupper/1.0.0/cmd/site-controller/deploy-watch-current-ns.yaml
+kubectl -n two apply -f https://raw.githubusercontent.com/skupperproject/skupper/1.0.0/cmd/site-controller/deploy-watch-current-ns.yaml
 ```
 
 
@@ -712,13 +712,22 @@ kubectl apply -f backend.yml
 kubectl set env deployment/backapi WORKER_CLOUD_ID="two"
 ```
 
-How to expose via yaml?
+Expose the backapi from Two
 
 ```
 kubectl annotate service backapi skupper.io/proxy=tcp
 ```
 
 ```
+skupper service status
+Services exposed through Skupper:
+╰─ backapi (tcp port 8080)
+   ╰─ Targets:
+      ╰─ app.kubernetes.io/name=backapi name=backapi
+```
+
+```
+skupper status
 Skupper is enabled for namespace "two" in interior mode. It is connected to 1 other site. It has 1 exposed service.
 The site console url is:  https://34.95.54.210:8080
 The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
