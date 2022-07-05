@@ -430,6 +430,42 @@ kube-root-ca.crt   1      22s
 ```
 
 
+### One: Install the application
+
+```
+kubectl apply -f backend.yml
+kubectl apply -f frontend.yml
+```
+
+Wait for that pending external-ip
+```
+watch kubectl get services
+NAME                    TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
+backapi                 ClusterIP      10.112.7.197   <none>        8080/TCP         18s
+hybrid-cloud-frontend   LoadBalancer   10.112.0.107   <pending>     8080:31470/TCP   17s
+```
+
+Responses from one's pods should include 'one'
+
+```
+kubectl set env deployment/backapi WORKER_CLOUD_ID="one"
+```
+
+
+```
+FRONTENDIP=$(kubectl get service hybrid-cloud-frontend -o jsonpath="{.status.loadBalancer.ingress[0].ip}"):8080
+
+open http://$FRONTENDIP
+```
+
+![frontend yaml one](images/yaml-way-frontend-one.png)
+
+```
+curl $FRONTENDIP/api/cloud
+one:0
+```
+
+
 ### One: Install Skupper into namespace
 
 ```
@@ -441,7 +477,9 @@ kubectl -n one apply -f https://raw.githubusercontent.com/skupperproject/skupper
 ```
 kubectl get pods
 NAME                                       READY   STATUS    RESTARTS   AGE
-skupper-site-controller-689565b686-5tfdd   1/1     Running   0          54s
+backapi-69786b84bb-kksbw                   1/1     Running   0          53m
+hybrid-cloud-frontend-6d88f9cd4b-59rsp     1/1     Running   0          72m
+skupper-site-controller-56d886649c-77fwc   1/1     Running   0          12s
 ```
 
 ```
@@ -453,8 +491,11 @@ skupper-site-controller-token-dndvc   kubernetes.io/service-account-token   3   
 
 ```
 kubectl get services
-No resources found in one namespace.
+NAME                    TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)          AGE
+backapi                 ClusterIP      10.112.7.197   <none>          8080/TCP         73m
+hybrid-cloud-frontend   LoadBalancer   10.112.0.107   35.234.253.91   8080:31470/TCP   73m
 ```
+
 
 ### One: Create Site 
 
@@ -502,50 +543,19 @@ skupper-site-server                      kubernetes.io/tls                     3
 
 ```
 kubectl get services
-NAME                     TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)                           AGE
-skupper                  LoadBalancer   10.112.11.8     34.95.24.191   8080:31303/TCP,8081:31503/TCP     103s
-skupper-router           LoadBalancer   10.112.1.37     34.95.51.203   55671:30188/TCP,45671:32064/TCP   2m33s
-skupper-router-console   ClusterIP      10.112.6.101    <none>         8080/TCP                          2m34s
-skupper-router-local     ClusterIP      10.112.11.133   <none>         5671/TCP                          2m34s
-```
-
-## Two
-
-### Two: Create Namespace 
-
-```
-kubectl create namespace two
-kubectl config set-context --current --namespace=two
-```
-
-
-### Two: Install Skupper into namespace
-
-```
-kubectl -n two apply -f https://raw.githubusercontent.com/skupperproject/skupper/1.0.0/cmd/site-controller/deploy-watch-current-ns.yaml
-```
-
-
-### Two: Create Site 
-
-```
-kubectl apply -f via-yaml/two.yml
-```
-
-```
-skupper status
-Skupper is enabled for namespace "two" in interior mode. It is not connected to any other sites. It has no exposed services.
-The site console url is:  https://34.95.54.210:8080
-The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
+NAME                     TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)                           AGE
+backapi                  ClusterIP      10.112.7.197   <none>          8080/TCP                          76m
+hybrid-cloud-frontend    LoadBalancer   10.112.0.107   35.234.253.91   8080:31470/TCP                    76m
+skupper                  LoadBalancer   10.112.12.19   34.95.54.210    8080:31609/TCP,8081:31495/TCP     116s
+skupper-router           LoadBalancer   10.112.13.52   34.95.51.203    55671:31388/TCP,45671:30435/TCP   2m35s
+skupper-router-console   ClusterIP      10.112.2.72    <none>          8080/TCP                          2m35s
+skupper-router-local     ClusterIP      10.112.8.69    <none>          5671/TCP                          2m35s
 ```
 
 ### Generate Token in One
 
 Create the token request secret in One
 
-```
-kubectl config set-context --current --namespace=one
-```
 
 ```
 skupper status
@@ -595,71 +605,30 @@ Sites:
    version: 1.0.0
 ```
 
-### Copy One's Secret/Token to Two
-
-#### From One
-
 ```
-kubectl config set-context --current --namespace=one
-kubectl get secret link-to-one -o yaml > link-to-one.yaml
+skupper service status
+No services defined
 ```
 
-#### Modify the secret to strip out Namespace & cruft
+#### Expose the backapi service inside of One
 
-```
-brew install yq
-```
-
-```
-cat link-to-one.yaml| yq 'del(.metadata.namespace)' > link-to-one-no-namespace.yaml
-cat link-to-one-no-namespace.yaml| yq 'del(.metadata.resourceVersion)' > link-to-one-no-resourceVersion.yaml
-cat link-to-one-no-resourceVersion.yaml| yq 'del(.metadata.uid)' > link-to-one-no-uid.yaml
-```
-
-#### To Two
-
-```
-kubectl config set-context --current --namespace=two
-kubectl apply -f link-to-one-no-uid.yaml
-```
-
-
-```
-skupper status
-Skupper is enabled for namespace "two" in interior mode. It is connected to 1 other site. It has no exposed services.
-The site console url is:  https://34.95.54.210:8080
-The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
-```
-
-```
-skupper network status
-Sites:
-├─ [local] 2b352a8 - two
-│  URL: 34.152.9.114
-│  name: two
-│  namespace: two
-│  sites linked to: 2aa764f-one
-│  version: 1.0.0
-╰─ [remote] 2aa764f - one
-   URL: 34.95.51.203
-   name: one
-   namespace: one
-   version: 1.0.0
-```
-
-### One: Frontend and Backend
+### One: Expose
 
 ```
 kubectl config set-context --current --namespace=one
 ```
 
-```
-kubectl apply -f backend.yml
-kubectl apply -f frontend.yml
-```
+Still working?
 
 ```
-kubectl set env deployment/backapi WORKER_CLOUD_ID="one"
+FRONTENDIP=$(kubectl get service hybrid-cloud-frontend -o jsonpath="{.status.loadBalancer.ingress[0].ip}"):8080
+curl $FRONTENDIP/api/cloud
+one:3
+```
+
+One: expose to Skupper
+```
+kubectl annotate service backapi skupper.io/proxy=http
 ```
 
 ```
@@ -683,10 +652,7 @@ skupper-router-console   ClusterIP      10.112.6.101    <none>          8080/TCP
 skupper-router-local     ClusterIP      10.112.11.133   <none>          5671/TCP                          58m
 ```
 
-
 ```
-FRONTENDIP=$(kubectl get service hybrid-cloud-frontend -o jsonpath="{.status.loadBalancer.ingress[0].ip}"):8080
-
 open http://$FRONTENDIP
 ```
 
@@ -694,12 +660,129 @@ open http://$FRONTENDIP
 
 ```
 curl $FRONTENDIP/api/cloud
-one:0
+one:4
+```
+
+
+
+#### Prepare the token for subsequent sites
+
+```
+kubectl get secret link-to-one -o yaml > link-to-one.yaml
+```
+
+#### Modify the secret to strip out Namespace & cruft
+
+```
+brew install yq
 ```
 
 ```
-kubectl annotate service backapi skupper.io/proxy=tcp
+cat link-to-one.yaml| yq 'del(.metadata.namespace)' > link-to-one-no-namespace.yaml
+cat link-to-one-no-namespace.yaml| yq 'del(.metadata.resourceVersion)' > link-to-one-no-resourceVersion.yaml
+cat link-to-one-no-resourceVersion.yaml| yq 'del(.metadata.uid)' > link-to-one-no-uid.yaml
 ```
+
+
+
+## Two
+
+### Two: Create Namespace 
+
+```
+kubectl create namespace two
+kubectl config set-context --current --namespace=two
+```
+
+
+### Two: Install Skupper into namespace
+
+```
+kubectl -n two apply -f https://raw.githubusercontent.com/skupperproject/skupper/1.0.0/cmd/site-controller/deploy-watch-current-ns.yaml
+```
+
+```
+kubectl get pods
+NAME                                       READY   STATUS    RESTARTS   AGE
+skupper-site-controller-56d886649c-5chg5   1/1     Running   0          26s
+```
+
+```
+kubectl get services
+No resources found in two namespace.
+```
+
+
+### Two: Create Site 
+
+```
+kubectl apply -f via-yaml/two.yml
+```
+
+```
+kubectl get pods
+NAME                                          READY   STATUS    RESTARTS   AGE
+skupper-router-769cf4744f-2qp9p               2/2     Running   0          2m50s
+skupper-service-controller-6746d57c94-4hh74   1/1     Running   0          89s
+skupper-site-controller-56d886649c-5chg5      1/1     Running   0          3m56s
+```
+
+```
+kubectl get services
+NAME                     TYPE           CLUSTER-IP     EXTERNAL-IP    PORT(S)                           AGE
+skupper                  LoadBalancer   10.112.0.239   34.95.24.191   8080:32439/TCP,8081:30749/TCP     2m1s
+skupper-router           LoadBalancer   10.112.7.42    34.95.25.4     55671:32553/TCP,45671:30696/TCP   2m42s
+skupper-router-console   ClusterIP      10.112.8.189   <none>         8080/TCP                          2m42s
+skupper-router-local     ClusterIP      10.112.1.175   <none>         5671/TCP                          2m43s
+```
+
+```
+skupper status
+Skupper is enabled for namespace "two" in interior mode. It is not connected to any other sites. It has no exposed services.
+The site console url is:  https://34.95.54.210:8080
+The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
+```
+
+#### Link with Token
+
+```
+kubectl config set-context --current --namespace=two
+kubectl apply -f link-to-one-no-uid.yaml
+```
+
+```
+skupper status
+Skupper is enabled for namespace "two" in interior mode. It is connected to 1 other site. It has 1 exposed services.
+The site console url is:  https://34.95.54.210:8080
+The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
+```
+
+```
+skupper network status
+Sites:
+├─ [local] d89553a - two
+│  URL: 34.95.25.4
+│  name: two
+│  namespace: two
+│  sites linked to: efe93ac-one
+│  version: 1.0.0
+│  ╰─ Services:
+│     ╰─ name: backapi
+│        address: backapi: 8080
+│        protocol: http
+╰─ [remote] efe93ac - one
+   URL: 34.95.51.203
+   name: one
+   namespace: one
+   version: 1.0.0
+   ╰─ Services:
+      ╰─ name: backapi
+         address: backapi: 8080
+         protocol: http
+         ╰─ Targets:
+            ╰─ name: backapi-69786b84bb-kksbw
+```
+
 
 ### Two: Backend
 
@@ -715,13 +798,13 @@ kubectl set env deployment/backapi WORKER_CLOUD_ID="two"
 Expose the backapi from Two
 
 ```
-kubectl annotate service backapi skupper.io/proxy=tcp
+kubectl annotate service backapi skupper.io/proxy=http
 ```
 
 ```
 skupper service status
 Services exposed through Skupper:
-╰─ backapi (tcp port 8080)
+╰─ backapi (http port 8080)
    ╰─ Targets:
       ╰─ app.kubernetes.io/name=backapi name=backapi
 ```
