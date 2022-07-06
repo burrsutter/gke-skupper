@@ -1,0 +1,1 @@
+kubectl -n three scale --replicas=1 deployment/backapi

@@ -1,3 +1,18 @@
+apiVersion: "v1"
+kind: "Service"
+metadata:
+  labels:
+    app.kubernetes.io/name: "backapi"
+  name: "backapi"
+spec:
+  ports:
+  - name: "http"
+    port: 8080
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: "backapi"
+  type: "ClusterIP"
+---
 apiVersion: "apps/v1"
 kind: "Deployment"
 metadata:

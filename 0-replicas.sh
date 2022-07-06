@@ -1,1 +1,0 @@
-kubectl scale --replicas=0 deployment/backapi
