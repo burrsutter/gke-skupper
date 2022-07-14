@@ -1149,5 +1149,160 @@ skupper-site-controller-56d886649c-rwjpv      1/1     Running   0          4h29m
 ```
 
 ```
+skupper status
+Skupper is enabled for namespace "hybrid" with site name "montreal" in interior mode. It is connected to 1 other site. It has 1 exposed service.
+The site console url is:  https://34.95.11.70:8080
+The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
+```
+
+The backapi service magically appears due to the annotation on the Deployment that tells it to be Skupper'ized
 
 ```
+kubectl get services -n hybrid
+NAME                     TYPE           CLUSTER-IP      EXTERNAL-IP     PORT(S)                           AGE
+backapi                  ClusterIP      10.112.14.0     <none>          8080/TCP                          61s
+hybrid-cloud-frontend    LoadBalancer   10.112.2.69     34.152.21.149   8080:31823/TCP                    102m
+skupper                  LoadBalancer   10.112.5.211    34.95.11.70     8080:31342/TCP,8081:31881/TCP     4h37m
+skupper-router           LoadBalancer   10.112.5.150    34.152.15.149   55671:30708/TCP,45671:30473/TCP   4h38m
+skupper-router-console   ClusterIP      10.112.10.180   <none>          8080/TCP                          4h38m
+skupper-router-local     ClusterIP      10.112.13.50    <none>          5671/TCP                          4h38m
+```
+
+```
+FRONTENDIP=$(kubectl get service hybrid-cloud-frontend -o jsonpath="{.status.loadBalancer.ingress[0].ip}"):8080
+
+curl $FRONTENDIP/api/cloud
+montreal:0%
+```
+
+
+### Frankfurt Backend
+
+```
+kubens argocd
+
+kubectl apply -f https://raw.githubusercontent.com/burrsutter/gke-skupper/main/argocd-backend/application-backend-frankfurt.yaml
+```
+
+```
+argocd app list
+```
+
+```
+kubectl get pods -n hybrid
+NAME                                         READY   STATUS    RESTARTS   AGE
+backapi-6f54c5f7bc-766c6                     1/1     Running   0          27s
+skupper-router-689cb446b7-j9hxd              2/2     Running   0          173m
+skupper-service-controller-b7d6df6fb-nfmsc   1/1     Running   0          172m
+skupper-site-controller-56d886649c-67zqc     1/1     Running   0          173m
+```
+
+Fail-over from Montreal to Frankfurt
+
+### Montreal
+
+```
+kubectl -n hybrid scale --replicas=0 deployment/backapi
+```
+
+```
+curl $FRONTENDIP/api/cloud
+frankfurt:0%
+```
+
+```
+open http://$FRONTENDIP
+```
+
+![frontend frankfurt argocd](images/frontend-frankfurt-argocd.png)
+
+
+### Add Sydney
+
+```
+export KUBECONFIG=/Users/burr/xKS/.kubeconfig/sydney-config
+
+gcloud container clusters create sydney --zone australia-southeast1 --num-nodes 1 --enable-autoscaling --min-nodes 1 --max-nodes 4
+```
+
+```
+gcloud container clusters get-credentials sydney --zone australia-southeast1
+```
+
+```
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/core-install.yaml
+```
+
+```
+argocd login --core
+kubectl config set-context --current --namespace=argocd
+
+
+argocd app list
+NAME  CLUSTER  NAMESPACE  PROJECT  STATUS  HEALTH  SYNCPOLICY  CONDITIONS  REPO  PATH  TARGET
+```
+
+```
+kubectl get pods
+NAME                                                READY   STATUS    RESTARTS   AGE
+argocd-application-controller-0                     1/1     Running   0          7m17s
+argocd-applicationset-controller-6948b57c5f-dsd78   1/1     Running   0          7m18s
+argocd-redis-55d64cd8bf-l7h44                       1/1     Running   0          7m18s
+argocd-repo-server-559795ff4-kqdp9                  1/1     Running   0          7m18s
+```
+
+```
+kubectl apply -f https://raw.githubusercontent.com/burrsutter/gke-skupper/main/argocd-skupper/application-skupper-sydney.yaml
+```
+
+```
+kubectl get applications
+NAME      SYNC STATUS   HEALTH STATUS
+skupper   OutOfSync     Missing
+```
+
+```
+argocd app list
+NAME     CLUSTER                         NAMESPACE  PROJECT  STATUS     HEALTH   SYNCPOLICY  CONDITIONS  REPO                                           PATH                              TARGET
+skupper  https://kubernetes.default.svc  hybrid     default  OutOfSync  Missing  <none>      <none>      https://github.com/burrsutter/gke-skupper.git  argocd-skupper/overlays/montreal  HEAD
+```
+
+```
+argocd app sync skupper
+```
+
+```
+kubectl get namespaces
+NAME              STATUS   AGE
+argocd            Active   82m
+default           Active   87m
+hybrid            Active   7s
+kube-node-lease   Active   88m
+kube-public       Active   88m
+kube-system       Active   88m
+```
+
+```
+kubectl get pods -n hybrid
+NAME                                          READY   STATUS    RESTARTS   AGE
+skupper-router-6c884f6448-8x52v               2/2     Running   0          4m12s
+skupper-service-controller-7c79f5f947-6lgtj   1/1     Running   0          2m51s
+skupper-site-controller-56d886649c-rwjpv      1/1     Running   0          4m16s
+```
+
+```
+skupper -n hybrid status
+Skupper is enabled for namespace "hybrid" with site name "montreal" in interior mode. It is not connected to any other sites. It has no exposed services.
+The site console url is:  https://34.95.11.70:8080
+The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
+```
+
+```
+skupper -n hybrid link create token.yaml
+```
+
+```
+skupper link status
+```
+
