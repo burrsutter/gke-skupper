@@ -1,0 +1,69 @@
+apiVersion: "v1"
+kind: "Service"
+metadata:
+  labels:
+    app.kubernetes.io/name: "hybrid-cloud-frontend"
+  name: "hybrid-cloud-frontend"
+spec:
+  ports:
+  - name: "http"
+    port: 8080
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: "hybrid-cloud-frontend"
+  type: "LoadBalancer"
+---
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata:
+  labels:
+    app.kubernetes.io/name: "hybrid-cloud-frontend"
+  name: "hybrid-cloud-frontend"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: "hybrid-cloud-frontend"
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: "hybrid-cloud-frontend"        
+    spec:
+      containers:
+      - env:
+        - name: "KUBERNETES_NAMESPACE"
+          valueFrom:
+            fieldRef:
+              fieldPath: "metadata.namespace"
+        image: "docker.io/burrsutter/hybrid-cloud-frontend:1.0.0"
+        imagePullPolicy: "IfNotPresent"
+        name: "hybrid-cloud-frontend"
+        resources:
+          requests:
+            memory: "100Mi"
+            cpu: "250m" # 1/4 core
+          limits:
+            memory: "200Mi"
+            cpu: "500m" # 1/2 core        
+        ports:
+        - containerPort: 8080
+          name: "http"
+          protocol: "TCP"
+---
+apiVersion: "networking.k8s.io/v1"
+kind: "Ingress"
+metadata:
+  labels:
+    app.kubernetes.io/name: "hybrid-cloud-frontend"
+  name: "hybrid-cloud-frontend"
+spec:
+  rules:
+    - http:
+        paths:
+          - backend:
+              service:
+                name: "hybrid-cloud-frontend"
+                port:
+                  number: 8080
+            path: "/"
+            pathType: Prefix

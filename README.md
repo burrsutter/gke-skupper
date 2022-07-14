@@ -1058,5 +1058,35 @@ gcloud container clusters get-credentials frankfurt --zone europe-west3
 Repeat the ArgoCD installation steps above
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/burrsutter/gke-skupper/main/argocd-skupper/application-skupper-montreal.yaml
+kubectl apply -f https://raw.githubusercontent.com/burrsutter/gke-skupper/main/argocd-skupper/application-skupper-frankfurt.yaml
+
+argocd app sync skupper
+```
+
+I am currently unaware of how to perform the Skupper token extraction and insertion via ArgoCD, so just going back to the CLI solution
+
+### Montreal
+
+```
+skupper -n hybrid token create token.yaml -t cert
+```
+
+### Frankfurt
+
+```
+skupper -n hybrid link create token.yaml
+```
+
+```
+skupper link status
+```
+
+![Skupper via ArgoCD](images/skupper-argocd-1.png)
+
+### Montreal
+
+Deploy frontend and backend
+
+```
+kubectl apply -f 
 ```
