@@ -1303,7 +1303,8 @@ skupper -n hybrid link create token.yaml
 ```
 
 ```
-skupper link status
+skupper -n hybrid link status
+Link link1 is active
 ```
 
 ```
@@ -1315,6 +1316,27 @@ argocd app sync backend
 ```
 
 ```
-kubectl get services
+kubectl get services -n hybrid
 ```
 
+
+### Frankfurt
+```
+kubectl -n hybrid scale --replicas=0 deployment/backapi
+```
+
+
+```
+curl $FRONTENDIP/api/cloud
+sydney:0%
+```
+
+
+
+### Clean Up
+
+```
+gcloud container clusters delete sydney --zone australia-southeast1
+gcloud container clusters delete frankfurt --zone europe-west3
+gcloud container clusters delete montreal --zone northamerica-northeast1
+```
