@@ -968,13 +968,15 @@ export KUBECONFIG=/Users/burr/xKS/.kubeconfig/montreal-config
 
 gcloud container clusters create montreal --zone northamerica-northeast1 --num-nodes 1 --enable-autoscaling --min-nodes 1 --max-nodes 4
 
+```
+
+```
 gcloud container clusters get-credentials montreal --zone northamerica-northeast1
 ```
 
 ```
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/core-install.yaml
-
 ```
 
 ```
@@ -995,3 +997,66 @@ argocd-redis-55d64cd8bf-l7h44                       1/1     Running   0         
 argocd-repo-server-559795ff4-kqdp9                  1/1     Running   0          7m18s
 ```
 
+```
+kubectl apply -f https://raw.githubusercontent.com/burrsutter/gke-skupper/main/argocd-skupper/application-skupper-montreal.yaml
+```
+
+```
+kubectl get applications
+NAME      SYNC STATUS   HEALTH STATUS
+skupper   OutOfSync     Missing
+```
+
+```
+argocd app list
+NAME     CLUSTER                         NAMESPACE  PROJECT  STATUS     HEALTH   SYNCPOLICY  CONDITIONS  REPO                                           PATH                              TARGET
+skupper  https://kubernetes.default.svc  hybrid     default  OutOfSync  Missing  <none>      <none>      https://github.com/burrsutter/gke-skupper.git  argocd-skupper/overlays/montreal  HEAD
+```
+
+```
+argocd app sync skupper
+```
+
+```
+kubectl get namespaces
+NAME              STATUS   AGE
+argocd            Active   82m
+default           Active   87m
+hybrid            Active   7s
+kube-node-lease   Active   88m
+kube-public       Active   88m
+kube-system       Active   88m
+```
+
+```
+kubectl get pods -n hybrid
+NAME                                          READY   STATUS    RESTARTS   AGE
+skupper-router-6c884f6448-8x52v               2/2     Running   0          4m12s
+skupper-service-controller-7c79f5f947-6lgtj   1/1     Running   0          2m51s
+skupper-site-controller-56d886649c-rwjpv      1/1     Running   0          4m16s
+```
+
+```
+skupper -n hybrid status
+Skupper is enabled for namespace "hybrid" with site name "montreal" in interior mode. It is not connected to any other sites. It has no exposed services.
+The site console url is:  https://34.95.11.70:8080
+The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
+```
+
+Repeat for Frankfurt
+
+```
+export KUBECONFIG=/Users/burr/xKS/.kubeconfig/frankfurt-config
+
+gcloud container clusters create frankfurt --zone europe-west3 --num-nodes 1 --enable-autoscaling --min-nodes 1 --max-nodes 4
+```
+
+```
+gcloud container clusters get-credentials frankfurt --zone europe-west3
+```
+
+Repeat the ArgoCD installation steps above
+
+```
+kubectl apply -f https://raw.githubusercontent.com/burrsutter/gke-skupper/main/argocd-skupper/application-skupper-montreal.yaml
+```
