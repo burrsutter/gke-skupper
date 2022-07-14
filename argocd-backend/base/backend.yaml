@@ -4,6 +4,8 @@ metadata:
   labels:
     app.kubernetes.io/name: "backapi"
   name: "backapi"
+  annotations:
+    skupper.io/proxy: "http"
 spec:
   replicas: 1
   selector:
