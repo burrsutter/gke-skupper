@@ -394,10 +394,12 @@ export USE_GKE_GCLOUD_AUTH_PLUGIN=True
 
 ### Create a GKE Cluster
 
+Using the same cluster for 3 Skupper Sites might need a bit more capacity, adding the auto-scaling feature of GKE
+
 ```
 export KUBECONFIG=/Users/burr/xKS/.kubeconfig/montreal-config
 
-gcloud container clusters create montreal --zone northamerica-northeast1 --num-nodes 1
+gcloud container clusters create montreal --zone northamerica-northeast1 --num-nodes 1 --enable-autoscaling --min-nodes 1 --max-nodes 4
 
 gcloud container clusters get-credentials montreal --zone northamerica-northeast1
 ```
