@@ -1085,8 +1085,42 @@ skupper link status
 
 ### Montreal
 
-Deploy frontend and backend
+Deploy frontend and backend via ArgoCD
 
 ```
-kubectl apply -f 
+kubectl -n argocd apply -f https://raw.githubusercontent.com/burrsutter/gke-skupper/main/argocd-frontend/application-frontend.yml
 ```
+
+```
+kubens argocd
+argocd app list
+NAME      CLUSTER                         NAMESPACE  PROJECT  STATUS     HEALTH   SYNCPOLICY  CONDITIONS  REPO                                           PATH                              TARGET
+frontend  https://kubernetes.default.svc  hybrid     default  OutOfSync  Missing  <none>      <none>      https://github.com/burrsutter/gke-skupper.git  argocd-frontend/base              HEAD
+skupper   https://kubernetes.default.svc  hybrid     default  Synced     Healthy  <none>      <none>      https://github.com/burrsutter/gke-skupper.git  argocd-skupper/overlays/montreal  HEAD
+```
+
+```
+argocd app sync frontend
+```
+
+```
+kubectl get pods -n hybrid
+NAME                                          READY   STATUS    RESTARTS   AGE
+hybrid-cloud-frontend-6d88f9cd4b-xkc74        1/1     Running   0          19s
+skupper-router-6c884f6448-8x52v               2/2     Running   0          176m
+skupper-service-controller-7c79f5f947-6lgtj   1/1     Running   0          175m
+skupper-site-controller-56d886649c-rwjpv      1/1     Running   0          176m
+```
+
+
+#### dry run
+
+```
+cd argocd-backend
+kubectl apply -k overlays/frankfurt/ --dry-run=client -o yaml
+```
+
+Add the backend to Montreal
+
+
+
