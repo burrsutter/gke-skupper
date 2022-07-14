@@ -960,3 +960,38 @@ You can simply delete the namepaces of `one`, `two` and `three` or wipe out the 
 ```
 gcloud container clusters delete montreal --zone northamerica-northeast1
 ```
+
+## ArgoCD Way
+
+```
+export KUBECONFIG=/Users/burr/xKS/.kubeconfig/montreal-config
+
+gcloud container clusters create montreal --zone northamerica-northeast1 --num-nodes 1 --enable-autoscaling --min-nodes 1 --max-nodes 4
+
+gcloud container clusters get-credentials montreal --zone northamerica-northeast1
+```
+
+```
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/core-install.yaml
+
+```
+
+```
+argocd login --core
+kubectl config set-context --current --namespace=argocd
+
+
+argocd app list
+NAME  CLUSTER  NAMESPACE  PROJECT  STATUS  HEALTH  SYNCPOLICY  CONDITIONS  REPO  PATH  TARGET
+```
+
+```
+kubectl get pods
+NAME                                                READY   STATUS    RESTARTS   AGE
+argocd-application-controller-0                     1/1     Running   0          7m17s
+argocd-applicationset-controller-6948b57c5f-dsd78   1/1     Running   0          7m18s
+argocd-redis-55d64cd8bf-l7h44                       1/1     Running   0          7m18s
+argocd-repo-server-559795ff4-kqdp9                  1/1     Running   0          7m18s
+```
+
