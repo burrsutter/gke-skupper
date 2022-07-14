@@ -1306,3 +1306,15 @@ skupper -n hybrid link create token.yaml
 skupper link status
 ```
 
+```
+kubectl -n argocd apply -f https://raw.githubusercontent.com/burrsutter/gke-skupper/main/argocd-backend/application-backend-sydney.yaml
+```
+
+```
+argocd app sync backend
+```
+
+```
+kubectl get services
+```
+
