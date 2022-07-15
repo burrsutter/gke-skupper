@@ -981,15 +981,22 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 
 ```
 argocd login --core
+```
+
+```
 kubectl config set-context --current --namespace=argocd
+```
 
-
+```
 argocd app list
 NAME  CLUSTER  NAMESPACE  PROJECT  STATUS  HEALTH  SYNCPOLICY  CONDITIONS  REPO  PATH  TARGET
 ```
 
 ```
 kubectl get pods
+```
+
+```
 NAME                                                READY   STATUS    RESTARTS   AGE
 argocd-application-controller-0                     1/1     Running   0          7m17s
 argocd-applicationset-controller-6948b57c5f-dsd78   1/1     Running   0          7m18s
@@ -1003,12 +1010,18 @@ kubectl apply -f https://raw.githubusercontent.com/burrsutter/gke-skupper/main/a
 
 ```
 kubectl get applications
+```
+
+```
 NAME      SYNC STATUS   HEALTH STATUS
 skupper   OutOfSync     Missing
 ```
 
 ```
 argocd app list
+```
+
+```
 NAME     CLUSTER                         NAMESPACE  PROJECT  STATUS     HEALTH   SYNCPOLICY  CONDITIONS  REPO                                           PATH                              TARGET
 skupper  https://kubernetes.default.svc  hybrid     default  OutOfSync  Missing  <none>      <none>      https://github.com/burrsutter/gke-skupper.git  argocd-skupper/overlays/montreal  HEAD
 ```
@@ -1043,7 +1056,7 @@ The site console url is:  https://34.95.11.70:8080
 The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
 ```
 
-Repeat for Frankfurt
+###  Frankfurt
 
 ```
 export KUBECONFIG=/Users/burr/xKS/.kubeconfig/frankfurt-config
@@ -1055,11 +1068,24 @@ gcloud container clusters create frankfurt --zone europe-west3 --num-nodes 1 --e
 gcloud container clusters get-credentials frankfurt --zone europe-west3
 ```
 
-Repeat the ArgoCD installation steps above
+```
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/core-install.yaml
+```
+
+```
+argocd login --core
+```
+
+```
+kubectl config set-context --current --namespace=argocd
+```
 
 ```
 kubectl apply -f https://raw.githubusercontent.com/burrsutter/gke-skupper/main/argocd-skupper/application-skupper-frankfurt.yaml
+```
 
+```
 argocd app sync skupper
 ```
 
@@ -1073,8 +1099,21 @@ skupper -n hybrid token create token.yaml -t cert
 
 ### Frankfurt
 
+wait for Frankfurt's skupper to come up
+
+```
+watch kubectl get pods
+NAME                                       READY   STATUS              RESTARTS   AGE
+skupper-router-7cbbfd5b56-n76rh            0/2     ContainerCreating   0          32s
+skupper-site-controller-56d886649c-v94cl   1/1     Running             0          40s
+```
+
 ```
 skupper -n hybrid link create token.yaml
+```
+
+```
+kubens hybrid
 ```
 
 ```
@@ -1186,6 +1225,10 @@ kubectl apply -f https://raw.githubusercontent.com/burrsutter/gke-skupper/main/a
 
 ```
 argocd app list
+```
+
+```
+argocd app sync
 ```
 
 ```
